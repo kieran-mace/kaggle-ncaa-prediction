@@ -6,4 +6,6 @@
 .RData
 
 # Data
-.csv
+*.csv
+*.ipynb
+*.tsv
