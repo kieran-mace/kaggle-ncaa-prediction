@@ -2,25 +2,26 @@ rm(list=ls())
 # Loading Packages
 library(data.table);
 library(dplyr);
+library(dtplyr);
 library(reshape);
-library(stringdist)
+#library(stringdist)
 
 rename = dplyr::rename
 ################################################################################
-DataFiles = fread('meta_data.txt')
-################################################################################
-# Download data if missing
-apply(DataFiles,1,function(x){
-  file_location=paste('data/',x[1],'.csv',sep='')
-  if(!file.exists(file_location)){
-    download.file(x[2],file_location)
-  }
-  })
+# DataFiles = fread('meta_data.txt')
+# ################################################################################
+# # Download data if missing
+# apply(DataFiles,1,function(x){
+#   file_location=paste('data/',x[1],'.csv',sep='')
+#   if(!file.exists(file_location)){
+#     download.file(x[2],file_location)
+#   }
+#   })
 
 ################################################################################
 # Reading in the raw data
 TourneySeeds <- fread("data/TourneySeeds.csv")
-SampleSubmission <- fread("data/SampleSubmission.csv")
+SampleSubmission <- fread("data/sample_submission.csv")
 Seasons <- fread("data/Seasons.csv")
 Teams <- fread("data/Teams.csv")
 TourneySlots <- fread("data/TourneySlots.csv")
@@ -28,23 +29,23 @@ TourneyDetailedResults <- fread("data/TourneyDetailedResults.csv")
 #TourneyCompactResults <- fread("data/TourneyCompactResults.csv")
 RegularSeasonDetailedResults <- fread("data/RegularSeasonDetailedResults.csv")
 #RegularSeasonCompactResults <- fread("data/RegularSeasonCompactResults.csv")
-KenPom <- fread("data/KenPom.csv")
-TeamSpelling <- fread("data/TeamSpellings.csv")
+# KenPom <- fread("data/KenPom.csv")
+# TeamSpelling <- fread("data/TeamSpellings.csv")
 ################################################################################
 # Preproces data
 # Rename for merge
-TeamSpelling <- rbind(TeamSpelling,rename(Teams,name_spelling=Team_Name,team_id=Team_Id))
+# TeamSpelling <- rbind(TeamSpelling,rename(Teams,name_spelling=Team_Name,team_id=Team_id))
 # Extracting seeds for each team
 TourneySeeds <- TourneySeeds %>%
     mutate(SeedNum = gsub("[A-Z+a-z]", "", Seed)) %>% select(Season, Team, SeedNum)
 
 # fix external data
-colnames(TeamSpelling)[1] = "Team"
-KenPom$Team = tolower(KenPom$Team)
+#colnames(TeamSpelling)[1] = "Team"
+# KenPom$Team = tolower(KenPom$Team)
 Teams$Team_Name = tolower(Teams$Team_Name)
 
 # mamp spelling
-KenPom = left_join(KenPom, TeamSpelling, by=c('Team'='Team'))
+# KenPom = left_join(KenPom, TeamSpelling, by=c('Team'='Team'))
 
 ################################################################################
 # Construct summary data
@@ -84,10 +85,10 @@ colnames(team1_data_by_season) <- paste("team1", colnames(team1_data_by_season),
 team2_data_by_season = data.frame(team_data_by_season)
 colnames(team2_data_by_season) <- paste("team2", colnames(team2_data_by_season), sep = "_")
 
-team1_kenpom_data_by_season = data.frame(KenPom)
-colnames(team1_kenpom_data_by_season) <- paste("team1", colnames(team1_kenpom_data_by_season), sep = "_")
-team2_kenpom_data_by_season = data.frame(KenPom)
-colnames(team2_kenpom_data_by_season) <- paste("team2", colnames(team2_kenpom_data_by_season), sep = "_")
+# team1_kenpom_data_by_season = data.frame(KenPom)
+# colnames(team1_kenpom_data_by_season) <- paste("team1", colnames(team1_kenpom_data_by_season), sep = "_")
+# team2_kenpom_data_by_season = data.frame(KenPom)
+# colnames(team2_kenpom_data_by_season) <- paste("team2", colnames(team2_kenpom_data_by_season), sep = "_")
 
 
 ################################################################################
@@ -104,7 +105,7 @@ games.to.train <- RegularSeasonDetailedResults %>%
 games.to.test <- TourneyDetailedResults %>%
                   mutate(season=Season, team1=Wteam, team2=Lteam, Score_diff=Wscore-Lscore, team1win=1) %>%
                   select(season, team1, team2, Score_diff, team1win)
-games.to.predict <- cbind(SampleSubmission$Id, colsplit(SampleSubmission$Id, split = "_", names = c('season', 'team1', 'team2')))
+games.to.predict <- cbind(SampleSubmission$id, colsplit(SampleSubmission$id, split = "_", names = c('season', 'team1', 'team2')))
 
 flippedGames = function(game){
   flipped <- game %>%
@@ -126,10 +127,10 @@ addDataToGames = function(games) {
           mutate(team1seed = as.numeric(team1seed), team2seed = as.numeric(team2seed)) %>%
           # add seasonal data
           left_join(team1_data_by_season,by=c("season" = "team1_season", "team1"="team1_team")) %>%
-          left_join(team2_data_by_season,by=c("season" = "team2_season", "team2"="team2_team")) %>%
+          left_join(team2_data_by_season,by=c("season" = "team2_season", "team2"="team2_team")) #%>%
           # add external data
-          left_join(team1_kenpom_data_by_season,by=c("season" = "team1_Year", "team1"="team1_team_id")) %>%
-          left_join(team2_kenpom_data_by_season,by=c("season" = "team2_Year", "team2"="team2_team_id"))
+          # left_join(team1_kenpom_data_by_season,by=c("season" = "team1_Year", "team1"="team1_team_id")) %>%
+          # left_join(team2_kenpom_data_by_season,by=c("season" = "team2_Year", "team2"="team2_team_id"))
   return(games)
 
 }
@@ -141,13 +142,19 @@ games.to.predict = addDataToGames(games.to.predict)
 games.to.train = games.to.train %>% na.omit()
 games.to.test = games.to.test %>% na.omit()
 
+write.csv(games.to.train,'games_to_train.csv')
+write.csv(games.to.test,'games_to_test.csv')
+write.csv(games.to.predict,'games_to_predict.csv')
+
+
+
 getMissing = function(){
-  a=Teams$Team_Name[which(Teams$Team_Id %in% unique(games.to.test$team2[which(is.na(games.to.test$team2_Team))]))]
-  b=Teams$Team_Name[which(Teams$Team_Id %in% unique(games.to.test$team1[which(is.na(games.to.test$team1_Team))]))]
-  c=Teams$Team_Name[which(Teams$Team_Id %in% unique(games.to.train$team2[which(is.na(games.to.train$team2_Team))]))]
-  d=Teams$Team_Name[which(Teams$Team_Id %in% unique(games.to.train$team1[which(is.na(games.to.train$team1_Team))]))]
-  e=Teams$Team_Name[which(Teams$Team_Id %in% unique(games.to.predict$team2[which(is.na(games.to.predict$team2_Team))]))]
-  f=Teams$Team_Name[which(Teams$Team_Id %in% unique(games.to.predict$team1[which(is.na(games.to.predict$team1_Team))]))]
+  a=Teams$Team_Name[which(Teams$Team_id %in% unique(games.to.test$team2[which(is.na(games.to.test$team2_Team))]))]
+  b=Teams$Team_Name[which(Teams$Team_id %in% unique(games.to.test$team1[which(is.na(games.to.test$team1_Team))]))]
+  c=Teams$Team_Name[which(Teams$Team_id %in% unique(games.to.train$team2[which(is.na(games.to.train$team2_Team))]))]
+  d=Teams$Team_Name[which(Teams$Team_id %in% unique(games.to.train$team1[which(is.na(games.to.train$team1_Team))]))]
+  e=Teams$Team_Name[which(Teams$Team_id %in% unique(games.to.predict$team2[which(is.na(games.to.predict$team2_Team))]))]
+  f=Teams$Team_Name[which(Teams$Team_id %in% unique(games.to.predict$team1[which(is.na(games.to.predict$team1_Team))]))]
   missing = unique(c(a,b,c,d,e,f))
   print(missing)
   return(missing)
@@ -156,8 +163,8 @@ getMissing = function(){
 m.score_diff <- lm(Score_diff~ .,
                    data=select(games.to.train,
                                -c(team1win,
-                                  team1_Team,
-                                  team2_Team,
+                                  #team1_Team,
+                                  #team2_Team,
                                   team1,
                                   team2)))
 
@@ -182,4 +189,4 @@ getLogLoss(games.to.train)
 
 getLogLoss(games.to.test)
 
-write.csv(games.to.predict %>% select(Id=SampleSubmission.Id, Pred), 'seed_submission.csv', row.names=FALSE)
+write.csv(games.to.predict %>% select(id=SampleSubmission.id, Pred), 'seed_submission.csv', row.names=FALSE)
