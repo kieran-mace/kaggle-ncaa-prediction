@@ -50,23 +50,23 @@ Looser_data = RegularSeasonDetailedResults[['Season',
 
 columns=['Season',
          'Daynum',
-         'team',
+         'team_number',
          'score',
-         'loc',
-         'Numot',
-         'fgm',
-         'fga',
-         'fgm3',
-         'fga3',
-         'ftm',
-         'fta',
-         'or',
-         'dr',
-         'ast',
-         'to',
-         'stl',
-         'blk',
-         'pf']
+         'location',
+         'Number_OT',
+         'field_goals_made',
+         'field_goals_attempted',
+         'three_pointers_made',
+         'three_pointers_attempted',
+         'free_throws_made',
+         'free_throws_attempted',
+         'offensive_rebounds',
+         'defensive_rebounds',
+         'assists',
+         'turnovers',
+         'steals',
+         'blocks',
+         'personal_fowls']
 
 Winner_data.columns = columns
 Winner_data['outcome'] = 1
@@ -75,5 +75,6 @@ Looser_data['outcome'] = 0
 
 All = Winner_data
 All = All.append(Looser_data)
-
+del All['Daynum'] # I cant see how this is going to be helpful, unless we want
+# to see if a team is "getting hot" closer to the end of the season.
 Summary = All.groupby(['Season', 'team']).mean()
