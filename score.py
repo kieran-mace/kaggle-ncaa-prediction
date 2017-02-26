@@ -14,6 +14,5 @@ def get_logloss(guess, actual):
 def score_predictions(truth, predicitons):
     scores = list()
     for i in range(0,len(truth)-1)
-        scores[i] = get_score[predicitons[i], truth[i]]
+        scores[i] = get_logloss[predicitons[i], truth[i]]
     return np.mean(scores)
-    
