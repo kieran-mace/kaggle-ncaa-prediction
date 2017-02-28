@@ -77,4 +77,4 @@ All = Winner_data
 All = All.append(Looser_data)
 del All['Daynum'] # I cant see how this is going to be helpful, unless we want
 # to see if a team is "getting hot" closer to the end of the season.
-Summary = All.groupby(['Season', 'team']).mean()
+Summary = All.groupby(['Season', 'team_number']).mean()
