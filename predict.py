@@ -7,7 +7,8 @@ def make_prediction(input):
     team1_data = Summary.loc[int(Season)].loc[int(team1)]
     team2_data = Summary.loc[int(Season)].loc[int(team2)]
     ratio = team1_data / team2_data
-    return np.random.random() # random number between 0 and 1
+    return np.log2(ratio['outcome']) + 0.5
+    #return np.random.random() # random number between 0 and 1
 
 
 def predict_all(inputs):
