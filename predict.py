@@ -3,6 +3,10 @@ import numpy as np
 
 def make_prediction(input):
     # Currently just going to return a random Number
+    Season, team1, team2 = input.split('_')
+    team1_data = Summary.loc[int(Season)].loc[int(team1)]
+    team2_data = Summary.loc[int(Season)].loc[int(team2)]
+    ratio = team1_data / team2_data
     return np.random.random() # random number between 0 and 1
 
 
