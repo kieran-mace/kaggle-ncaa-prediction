@@ -9,3 +9,4 @@
 *.csv
 *.ipynb
 *.tsv
+*.pyc
