@@ -21,7 +21,7 @@ rename = dplyr::rename
 ################################################################################
 # Reading in the raw data
 TourneySeeds <- fread("data/TourneySeeds.csv")
-SampleSubmission <- fread("data/sample_submission.csv")
+SampleSubmission <- fread("data/SampleSubmission.csv")
 Seasons <- fread("data/Seasons.csv")
 Teams <- fread("data/Teams.csv")
 TourneySlots <- fread("data/TourneySlots.csv")
@@ -105,7 +105,7 @@ games.to.train <- RegularSeasonDetailedResults %>%
 games.to.test <- TourneyDetailedResults %>%
                   mutate(season=Season, team1=Wteam, team2=Lteam, Score_diff=Wscore-Lscore, team1win=1) %>%
                   select(season, team1, team2, Score_diff, team1win)
-games.to.predict <- cbind(SampleSubmission$id, colsplit(SampleSubmission$id, split = "_", names = c('season', 'team1', 'team2')))
+games.to.predict <- cbind(SampleSubmission$Id, colsplit(SampleSubmission$Id, split = "_", names = c('season', 'team1', 'team2')))
 
 flippedGames = function(game){
   flipped <- game %>%
@@ -159,6 +159,20 @@ getMissing = function(){
   print(missing)
   return(missing)
 }
+log_loss = function(pred, y){
+    if(pred == y){
+        return(0)
+    }
+    logLoss = y*log(pred) + (1-y)*log(1-pred)
+    return(logLoss)
+}
+getLogLoss = function(games){
+    games %>% 
+        mutate(ll = log_loss(Pred, team1win)) %>%
+        summarise(ml = -mean(ll)) -> out
+        
+    return(out$ml)
+}
 
 m.score_diff <- lm(Score_diff~ .,
                    data=select(games.to.train,
@@ -178,15 +192,18 @@ games.to.train$Pred = win_chance(games.to.train$Predicted_Score_diff)
 games.to.test$Pred = win_chance(games.to.test$Predicted_Score_diff)
 games.to.predict$Pred = win_chance(games.to.predict$Predicted_Score_diff)
 
-getLogLoss = function(games){
-  y = games$team1win
-  pred = games$Pred
-  logLoss = -mean(y*log(pred) + (1-y)*log(1-pred))
-  return(logLoss)
-}
-
 getLogLoss(games.to.train)
-
 getLogLoss(games.to.test)
 
-write.csv(games.to.predict %>% select(id=SampleSubmission.id, Pred), 'seed_submission.csv', row.names=FALSE)
+write.csv(games.to.predict %>% select(Id=SampleSubmission.Id, Pred), 'ecdf_submission.csv', row.names=FALSE)
+
+fit = glm (team1win ~ Predicted_Score_diff, family = binomial(link = logit), data = games.to.train)
+
+games.to.train$Pred = predict(fit, games.to.train, type='response')
+games.to.test$Pred = predict(fit, games.to.test, type='response')
+games.to.predict$Pred = predict(fit, games.to.predict, type='response')
+
+getLogLoss(games.to.train)
+getLogLoss(games.to.test)
+
+write.csv(games.to.predict %>% select(Id=SampleSubmission.Id, Pred), 'logistic_submission.csv', row.names=FALSE)
