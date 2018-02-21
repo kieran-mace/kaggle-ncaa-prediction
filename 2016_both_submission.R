@@ -20,17 +20,17 @@ rename = dplyr::rename
 
 ################################################################################
 # Reading in the raw data
-TourneySeeds <- fread("data/TourneySeeds.csv")
-SampleSubmission <- fread("data/SampleSubmission.csv")
-Seasons <- fread("data/Seasons.csv")
-Teams <- fread("data/Teams.csv")
-TourneySlots <- fread("data/TourneySlots.csv")
-TourneyDetailedResults <- fread("data/TourneyDetailedResults.csv")
-#TourneyCompactResults <- fread("data/TourneyCompactResults.csv")
-RegularSeasonDetailedResults <- fread("data/RegularSeasonDetailedResults.csv")
-#RegularSeasonCompactResults <- fread("data/RegularSeasonCompactResults.csv")
-# KenPom <- fread("data/KenPom.csv")
-# TeamSpelling <- fread("data/TeamSpellings.csv")
+TourneySeeds <- fread("data/2016/TourneySeeds.csv")
+SampleSubmission <- fread("data/2016/SampleSubmission.csv")
+Seasons <- fread("data/2016/Seasons.csv")
+Teams <- fread("data/2016/Teams.csv")
+TourneySlots <- fread("data/2016/TourneySlots.csv")
+TourneyDetailedResults <- fread("data/2016/TourneyDetailedResults.csv")
+#TourneyCompactResults <- fread("data/2016/TourneyCompactResults.csv")
+RegularSeasonDetailedResults <- fread("data/2016/RegularSeasonDetailedResults.csv")
+#RegularSeasonCompactResults <- fread("data/2016/RegularSeasonCompactResults.csv")
+# KenPom <- fread("data/2016/KenPom.csv")
+# TeamSpelling <- fread("data/2016/TeamSpellings.csv")
 ################################################################################
 # Preproces data
 # Rename for merge
@@ -167,10 +167,10 @@ log_loss = function(pred, y){
     return(logLoss)
 }
 getLogLoss = function(games){
-    games %>% 
+    games %>%
         mutate(ll = log_loss(Pred, team1win)) %>%
         summarise(ml = -mean(ll)) -> out
-        
+
     return(out$ml)
 }
 
