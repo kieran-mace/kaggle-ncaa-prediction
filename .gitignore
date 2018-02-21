@@ -10,3 +10,4 @@
 *.ipynb
 *.tsv
 *.pyc
+.Rproj.user

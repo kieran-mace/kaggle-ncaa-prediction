@@ -1,0 +1,123 @@
+---
+title: "2018 Exploring"
+output: html_notebook
+---
+
+## Loading Data
+```{r}
+library(tidyverse)
+
+teams = read_csv('data/2018/WDataFiles/WTeams.csv')
+
+games = rbind(
+  read_csv('data/2018/WDataFiles/WRegularSeasonCompactResults.csv') %>% mutate(Season_Type = 'Regular'),
+  read_csv('data/2018/WDataFiles/WNCAATourneyCompactResults.csv') %>% mutate(Season_Type = 'Tournament')
+) %>% mutate(game_id = 1:n())  
+
+# Function to flip locations for the loosing team:
+
+flip_location = Vectorize(
+  function(loc) {
+    new_loc = switch(loc,
+                        H = 'A',
+                        A = 'H',
+                        N = 'N',
+                        'Error!')
+    return(new_loc)
+  }
+)
+
+annotate_location = Vectorize(
+  function(loc) {
+    new_loc = switch(loc,
+                        H = 'Home',
+                        A = 'Away',
+                        N = 'Neutral',
+                        'Error!')
+    return(new_loc)
+  }
+)
+
+performances = rbind(
+  # Winner records
+  games %>% select(TeamID=WTeamID,
+                   Score=WScore,
+                   Opponent_Score=LScore,
+                   Season,
+                   DayNum,
+                   Location = WLoc,
+                   NumOT, 
+                   Season_Type, 
+                   game_id) %>% 
+    mutate(Win=TRUE),
+  # Looser records
+  games %>% select(TeamID=LTeamID,
+                   Score=LScore,
+                   Opponent_Score=WScore,
+                   Season,
+                   DayNum,
+                   Location = WLoc,
+                   NumOT, 
+                   Season_Type, 
+                   game_id) %>% 
+    mutate(Win=FALSE,
+           Location = flip_location(Location))
+) %>% mutate(Location = annotate_location(Location))
+
+
+```
+
+
+## Homefield advantage
+
+Let's see how a home game advatage might affect the scores:
+
+Since our `performace` dataset is symetrical (2 records per game), lets just look at the winners.
+
+First we look at the difference in scores for winners by location
+
+```{r}
+score_dist_plot = performances %>% 
+                    filter(Win) %>% 
+                    mutate(score_diff = Score - Opponent_Score) %>% 
+                    ggplot(aes(x = score_diff, fill = Location)) 
+
+score_dist_plot + geom_density(alpha = 0.5)
+
+score_dist_plot + geom_density(alpha = 0.5) + facet_wrap(~Location, nrow = 3)
+
+```
+
+We see that blowouts are more likely for home games, whereas tight margins of victory seem to be more common in away games. 
+
+```{r}
+games %>% 
+  filter(WLoc %in% c('H','A')) %>% # Only get home and away games
+  pull(WLoc) %>% table() %>% prop.table()
+```
+supprisingly, 62% of home games are won.
+
+Although most NCAA games are not played at home or away, we will have to account for this signal in order to get a better sense for how teams might play on neutral teritory. 
+
+## Dynasties (long term success)
+
+```{r}
+performances %>% 
+  filter(Season_Type=='Regular') %>%
+  group_by(TeamID, Season) %>% 
+  summarise(Scored=mean(Score),
+            Allowed=mean(Opponent_Score)) %>% 
+  ungroup() %>% 
+  group_by(TeamID) %>% 
+  nest() %>%
+  sample_n(6) %>% 
+  unnest() %>%
+  left_join(teams) %>%
+  ggplot(aes(x=Season,group=TeamName))+
+  geom_line(aes(y=Scored,col="avg Scored Points"))+
+  geom_line(aes(y=Allowed,col="avg Allowed Points"))+
+  facet_wrap(~TeamName,ncol=2)+
+  labs(title="Example Plot using dplyr and ggplot",y="Points",x="Season")+
+  theme_light()
+```
+
